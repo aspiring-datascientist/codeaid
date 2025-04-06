@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeAid - AI Code Review</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gray-100">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-4">Enter Repository Details</h1>
+
+        <div class="space-y-4">
+            <input type="text" id="owner" placeholder="Owner (e.g., facebook)" class="w-full p-3 border rounded-lg">
+            <input type="text" id="repo" placeholder="Repository (e.g., react)" class="w-full p-3 border rounded-lg">
+            <input type="text" id="pull_number" placeholder="Pull Request Number" class="w-full p-3 border rounded-lg">
+            <button id="submit-btn" onclick="fetchReview()" class="w-full bg-blue-500 text-white p-3 rounded-lg">Submit</button>
+        </div>
+
+        <div id="feedback-container" class="mt-4 bg-gray-200 p-4 rounded-lg hidden">
+            <pre id="feedback" class="text-sm font-mono"></pre>
+        </div>
+    </div>
+
+    <script>
+        async function fetchReview() {
+            const owner = document.getElementById("owner").value.trim();
+            const repo = document.getElementById("repo").value.trim();
+            const pull_number = document.getElementById("pull_number").value.trim();
+    
+            if (!owner || !repo || !pull_number) {
+                alert("Please fill all fields!");
+                return;
+            }
+    
+            try {
+                const response = await fetch(`http://localhost:5000/pulls?owner=${owner}&repo=${repo}&pull_number=${pull_number}`);
+                const data = await response.json();
+    
+                if (response.ok && data.diff) {
+                    document.getElementById("feedback-container").classList.remove("hidden");
+                    document.getElementById("feedback").innerHTML = highlightDiff(data.diff);
+                } else {
+                    document.getElementById("feedback").textContent = data.error || "An error occurred.";
+                }
+            } catch (error) {
+                console.error("Error fetching review:", error);
+                document.getElementById("feedback").textContent = "An error occurred while fetching the diff.";
+            }
+        }
+    
+        function highlightDiff(diff) {
+            return diff
+                .split('\n')
+                .map(line => {
+                    if (line.startsWith('+')) {
+                        return `<span style="color: green; font-weight: bold;">${line}</span>`;
+                    }
+                    if (line.startsWith('-')) {
+                        return `<span style="color: red; font-weight: bold;">${line}</span>`;
+                    }
+                    return `<span>${line}</span>`;
+                })
+                .join('<br>');
+        }
+    </script>
+    
+</body>
+</html>
